@@ -6,6 +6,7 @@ const CELEBRATION_DURATION = 4500;
 const SLIDE_DURATION = 4000;
 const FIREWORK_COUNT = 12;
 const MUSIC_VOLUME = 0.35;
+const DEFAULT_SLIDE_FOCUS = '50% 30%';
 const app = document.querySelector('#app');
 const getAssetPath = (path) => `${import.meta.env.BASE_URL}${path}`;
 const GIFT_WRAP_SRC = getAssetPath('assets/gifts/paket.jpg');
@@ -541,6 +542,7 @@ function goToGiftZone() {
       </div>
 
       <button class="wish-button final-button" type="button" aria-label="Перейти до фінального привітання" hidden>Фінальне привітання</button>
+      <button class="secondary-button skip-gifts-button" type="button" aria-label="Пропустити подарунки і перейти до фінального привітання">Пропустити подарунки</button>
     </section>
   `;
 
@@ -552,6 +554,7 @@ function goToGiftZone() {
   });
 
   document.querySelector('.final-button').addEventListener('click', showFinalScreen);
+  document.querySelector('.skip-gifts-button').addEventListener('click', showFinalScreen);
 }
 
 function handleMissingGiftImage(image) {
@@ -632,7 +635,11 @@ function scheduleNextSlide() {
 function renderSlideContent({ slide, slideFrame, progress }) {
   slideFrame.innerHTML = `
     <div class="slide-media">
-      <img src="${slide.image}" alt="Фотоісторія: ${slide.title}" />
+      <img
+        src="${slide.image}"
+        alt="Фотоісторія: ${slide.title}"
+        style="--slide-focus: ${slide.focus || DEFAULT_SLIDE_FOCUS}"
+      />
       <div class="slide-fallback" aria-hidden="true">
         <span>Фото скоро з'явиться</span>
       </div>

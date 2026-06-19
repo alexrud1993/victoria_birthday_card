@@ -506,6 +506,7 @@ h1 {
   height: 100%;
   display: block;
   object-fit: cover;
+  object-position: var(--slide-focus, 50% 30%);
   animation: slide-zoom 4.4s cubic-bezier(0.2, 0.72, 0.22, 1) both;
 }
 
@@ -836,6 +837,11 @@ h1 {
 .final-button[hidden],
 .replay-choices[hidden] {
   display: none;
+}
+
+.skip-gifts-button {
+  justify-self: center;
+  width: min(100%, 320px);
 }
 
 .final-screen {
