@@ -9,6 +9,7 @@ const MUSIC_VOLUME = 0.35;
 const app = document.querySelector('#app');
 const getAssetPath = (path) => `${import.meta.env.BASE_URL}${path}`;
 const MUSIC_SRC = getAssetPath('assets/music/music.mp3');
+const GIFT_WRAP_SRC = getAssetPath('assets/gifts/paket.jpg');
 
 const slides = [
   {
@@ -62,6 +63,7 @@ const gifts = [
 
 let celebrationTimerId;
 let slideTimerId;
+let slideRenderTimerId;
 let musicAudio;
 let musicFadeTimerId;
 let activeSlideIndex = 0;
@@ -84,6 +86,13 @@ function clearSlideTimer() {
   if (slideTimerId) {
     window.clearTimeout(slideTimerId);
     slideTimerId = undefined;
+  }
+}
+
+function clearSlideRenderTimer() {
+  if (slideRenderTimerId) {
+    window.clearTimeout(slideRenderTimerId);
+    slideRenderTimerId = undefined;
   }
 }
 
@@ -324,6 +333,7 @@ function launchFinalConfetti() {
 function showFinalScreen() {
   clearCelebrationTimer();
   clearSlideTimer();
+  clearSlideRenderTimer();
 
   app.innerHTML = `
     <section class="final-screen" aria-labelledby="final-title">
@@ -362,7 +372,13 @@ function showFinalScreen() {
 
 function getGiftMarkup(gift, index) {
   return `
-    <button class="gift-box" type="button" data-gift-index="${index}" aria-label="${gift.label}">
+    <button
+      class="gift-box"
+      type="button"
+      data-gift-index="${index}"
+      aria-label="${gift.label}"
+      style="--gift-wrap-image: url('${GIFT_WRAP_SRC}')"
+    >
       <span class="gift-closed">
         <span class="gift-lid"></span>
         <span class="gift-ribbon"></span>
@@ -385,6 +401,7 @@ function getGiftMarkup(gift, index) {
 function goToGiftZone() {
   clearCelebrationTimer();
   clearSlideTimer();
+  clearSlideRenderTimer();
   openedGiftIndexes = new Set();
 
   app.innerHTML = `
@@ -489,24 +506,7 @@ function scheduleNextSlide() {
   }, SLIDE_DURATION);
 }
 
-function handleMissingSlideImage(image) {
-  const slideMedia = image.closest('.slide-media');
-
-  if (slideMedia) {
-    slideMedia.classList.add('has-missing-image');
-  }
-}
-
-function showSlide(index) {
-  activeSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
-  const slide = slides[activeSlideIndex];
-  const slideFrame = document.querySelector('.slide-frame');
-  const progress = document.querySelector('.slide-progress');
-
-  if (!slideFrame || !progress) {
-    return;
-  }
-
+function renderSlideContent({ slide, slideFrame, progress }) {
   slideFrame.innerHTML = `
     <div class="slide-media">
       <img src="${slide.image}" alt="Фотоісторія: ${slide.title}" />
@@ -535,7 +535,38 @@ function showSlide(index) {
     });
   });
 
+  window.requestAnimationFrame(() => {
+    slideFrame.classList.remove('is-changing');
+  });
   scheduleNextSlide();
+}
+
+function handleMissingSlideImage(image) {
+  const slideMedia = image.closest('.slide-media');
+
+  if (slideMedia) {
+    slideMedia.classList.add('has-missing-image');
+  }
+}
+
+function showSlide(index) {
+  clearSlideTimer();
+  clearSlideRenderTimer();
+  activeSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+  const slide = slides[activeSlideIndex];
+  const slideFrame = document.querySelector('.slide-frame');
+  const progress = document.querySelector('.slide-progress');
+
+  if (!slideFrame || !progress) {
+    return;
+  }
+
+  const hasRenderedSlide = slideFrame.children.length > 0;
+  slideFrame.classList.toggle('is-changing', hasRenderedSlide);
+  slideRenderTimerId = window.setTimeout(
+    () => renderSlideContent({ slide, slideFrame, progress }),
+    hasRenderedSlide ? 260 : 0,
+  );
 }
 
 function goToPreviousSlide() {
@@ -554,6 +585,7 @@ function goToNextSlide() {
 function goToPhotoStory() {
   clearCelebrationTimer();
   clearSlideTimer();
+  clearSlideRenderTimer();
   activeSlideIndex = 0;
 
   app.innerHTML = `
