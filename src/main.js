@@ -8,8 +8,15 @@ const FIREWORK_COUNT = 12;
 const MUSIC_VOLUME = 0.35;
 const app = document.querySelector('#app');
 const getAssetPath = (path) => `${import.meta.env.BASE_URL}${path}`;
-const MUSIC_SRC = getAssetPath('assets/music/music.mp3');
 const GIFT_WRAP_SRC = getAssetPath('assets/gifts/paket.jpg');
+
+const musicTracks = [
+  { label: '№1', src: getAssetPath('assets/music/music.mp3') },
+  { label: '№2', src: getAssetPath('assets/music/music2.mp3') },
+  { label: '№3', src: getAssetPath('assets/music/music3.mp3') },
+  { label: '№4', src: getAssetPath('assets/music/music4.mp3') },
+  { label: '№5', src: getAssetPath('assets/music/music5.mp3') },
+];
 
 const slides = [
   {
@@ -115,6 +122,8 @@ let activeSlideIndex = 0;
 let openedGiftIndexes = new Set();
 let isMusicOn = false;
 let isMusicUnavailable = false;
+let selectedMusicIndex = 0;
+const unavailableMusicTracks = new Set();
 
 function isCorrectAnswer(answer) {
   return answer.trim() === CORRECT_ANSWER;
@@ -160,6 +169,31 @@ function getMusicLabel() {
   return musicAudio ? 'Музика вимкнена' : 'Увімкнути музику 🎵';
 }
 
+function getSelectedMusicTrack() {
+  return musicTracks[selectedMusicIndex];
+}
+
+function getTrackButtonsMarkup() {
+  return musicTracks
+    .map((track, index) => {
+      const isActive = index === selectedMusicIndex ? 'is-active' : '';
+      const isUnavailable = unavailableMusicTracks.has(index) ? 'is-unavailable' : '';
+
+      return `
+        <button
+          class="music-track ${isActive} ${isUnavailable}"
+          type="button"
+          data-track-index="${index}"
+          aria-label="Обрати музичний трек ${track.label}"
+          aria-pressed="${index === selectedMusicIndex}"
+        >
+          ${track.label}
+        </button>
+      `;
+    })
+    .join('');
+}
+
 function getMusicStatusText() {
   return isMusicUnavailable ? 'Музика недоступна, але магія працює ✨' : '';
 }
@@ -167,6 +201,9 @@ function getMusicStatusText() {
 function getMusicControlMarkup() {
   return `
     <div class="music-panel">
+      <div class="music-tracks" aria-label="Вибір музичного треку">
+        ${getTrackButtonsMarkup()}
+      </div>
       <button
         class="music-toggle"
         type="button"
@@ -192,11 +229,19 @@ function updateMusicControls() {
   document.querySelectorAll('.music-status').forEach((status) => {
     status.textContent = getMusicStatusText();
   });
+
+  document.querySelectorAll('.music-track').forEach((button) => {
+    const index = Number(button.dataset.trackIndex);
+    button.classList.toggle('is-active', index === selectedMusicIndex);
+    button.classList.toggle('is-unavailable', unavailableMusicTracks.has(index));
+    button.setAttribute('aria-pressed', String(index === selectedMusicIndex));
+  });
 }
 
 function showMusicUnavailableMessage() {
   isMusicOn = false;
   isMusicUnavailable = true;
+  unavailableMusicTracks.add(selectedMusicIndex);
   clearMusicFade();
 
   updateMusicControls();
@@ -207,7 +252,7 @@ function getMusicAudio() {
     return musicAudio;
   }
 
-  musicAudio = new Audio(MUSIC_SRC);
+  musicAudio = new Audio(getSelectedMusicTrack().src);
   musicAudio.loop = true;
   musicAudio.preload = 'none';
   musicAudio.volume = 0;
@@ -261,6 +306,34 @@ function turnMusicOff() {
   updateMusicControls();
 }
 
+function resetMusicAudio() {
+  clearMusicFade();
+
+  if (musicAudio) {
+    musicAudio.pause();
+    musicAudio.removeEventListener('error', showMusicUnavailableMessage);
+  }
+
+  musicAudio = undefined;
+}
+
+function selectMusicTrack(index) {
+  if (index === selectedMusicIndex) {
+    return;
+  }
+
+  const shouldResume = isMusicOn;
+  isMusicOn = false;
+  selectedMusicIndex = index;
+  isMusicUnavailable = unavailableMusicTracks.has(selectedMusicIndex);
+  resetMusicAudio();
+  updateMusicControls();
+
+  if (shouldResume && !isMusicUnavailable) {
+    turnMusicOn();
+  }
+}
+
 function toggleMusic() {
   if (isMusicUnavailable) {
     showMusicUnavailableMessage();
@@ -278,6 +351,11 @@ function toggleMusic() {
 function attachMusicControl() {
   document.querySelectorAll('.music-toggle').forEach((button) => {
     button.addEventListener('click', toggleMusic);
+  });
+  document.querySelectorAll('.music-track').forEach((button) => {
+    button.addEventListener('click', () => {
+      selectMusicTrack(Number(button.dataset.trackIndex));
+    });
   });
 
   updateMusicControls();

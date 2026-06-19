@@ -279,6 +279,7 @@ h1 {
 .wish-button:focus-visible,
 .secondary-button:focus-visible,
 .music-toggle:focus-visible,
+.music-track:focus-visible,
 .gift-box:focus-visible,
 .slide-dot:focus-visible {
   outline: 3px solid rgba(255, 247, 236, 0.68);
@@ -294,8 +295,54 @@ h1 {
 .music-panel {
   width: min(100%, 330px);
   display: grid;
-  gap: 6px;
+  gap: 8px;
   justify-items: center;
+}
+
+.music-tracks {
+  width: min(100%, 300px);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgba(247, 213, 138, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 247, 236, 0.06);
+}
+
+.music-track {
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 247, 236, 0.72);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 850;
+  line-height: 1;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.music-track:hover,
+.music-track:focus-visible {
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.music-track.is-active {
+  border-color: rgba(247, 213, 138, 0.52);
+  background: linear-gradient(135deg, rgba(247, 213, 138, 0.22), rgba(255, 120, 189, 0.18));
+  color: var(--text);
+}
+
+.music-track.is-unavailable {
+  opacity: 0.54;
 }
 
 .music-toggle {
@@ -862,7 +909,8 @@ h1 {
 }
 
 .final-card .secondary-button,
-.final-card .music-toggle {
+.final-card .music-toggle,
+.final-card .music-track {
   width: 100%;
   border-color: rgba(122, 78, 11, 0.28);
   background: rgba(42, 20, 48, 0.06);
@@ -872,9 +920,20 @@ h1 {
 .final-card .secondary-button:hover,
 .final-card .secondary-button:focus-visible,
 .final-card .music-toggle:hover,
-.final-card .music-toggle:focus-visible {
+.final-card .music-toggle:focus-visible,
+.final-card .music-track:hover,
+.final-card .music-track:focus-visible {
   border-color: rgba(122, 78, 11, 0.52);
   background: rgba(247, 213, 138, 0.2);
+}
+
+.final-card .music-tracks {
+  border-color: rgba(122, 78, 11, 0.2);
+  background: rgba(42, 20, 48, 0.04);
+}
+
+.final-card .music-track.is-active {
+  background: rgba(247, 213, 138, 0.26);
 }
 
 .final-card .music-status {
