@@ -3,7 +3,7 @@ import './style.css';
 
 const CORRECT_ANSWER = '32';
 const CELEBRATION_DURATION = 4500;
-const SLIDE_DURATION = 4000;
+const SLIDE_DURATION = 12000;
 const FIREWORK_COUNT = 12;
 const MUSIC_VOLUME = 0.35;
 const DEFAULT_SLIDE_FOCUS = '50% 30%';
@@ -117,6 +117,9 @@ const gifts = [
 let celebrationTimerId;
 let slideTimerId;
 let slideRenderTimerId;
+let slideStartedAt = 0;
+let slideRemainingMs = SLIDE_DURATION;
+let isSlidePaused = false;
 let musicAudio;
 let musicFadeTimerId;
 let activeSlideIndex = 0;
@@ -142,6 +145,8 @@ function clearSlideTimer() {
     window.clearTimeout(slideTimerId);
     slideTimerId = undefined;
   }
+
+  slideStartedAt = 0;
 }
 
 function clearSlideRenderTimer() {
@@ -622,6 +627,8 @@ function getProgressMarkup() {
 
 function scheduleNextSlide() {
   clearSlideTimer();
+  slideRemainingMs = SLIDE_DURATION;
+  slideStartedAt = Date.now();
   slideTimerId = window.setTimeout(() => {
     if (activeSlideIndex === slides.length - 1) {
       goToGiftZone();
@@ -629,7 +636,62 @@ function scheduleNextSlide() {
     }
 
     showSlide(activeSlideIndex + 1);
-  }, SLIDE_DURATION);
+  }, slideRemainingMs);
+}
+
+function resumeSlideTimer(duration = slideRemainingMs) {
+  clearSlideTimer();
+  slideRemainingMs = duration;
+  slideStartedAt = Date.now();
+  slideTimerId = window.setTimeout(() => {
+    if (activeSlideIndex === slides.length - 1) {
+      goToGiftZone();
+      return;
+    }
+
+    showSlide(activeSlideIndex + 1);
+  }, slideRemainingMs);
+}
+
+function pauseCurrentSlide() {
+  const slideFrame = document.querySelector('.slide-frame');
+
+  if (!slideFrame || isSlidePaused || !slideTimerId) {
+    return;
+  }
+
+  const elapsed = Date.now() - slideStartedAt;
+  slideRemainingMs = Math.max(600, slideRemainingMs - elapsed);
+  window.clearTimeout(slideTimerId);
+  slideTimerId = undefined;
+  isSlidePaused = true;
+  slideFrame.classList.add('is-paused');
+  document.querySelector('.slide-progress')?.classList.add('is-paused');
+}
+
+function resumeCurrentSlide() {
+  const slideFrame = document.querySelector('.slide-frame');
+
+  if (!slideFrame || !isSlidePaused) {
+    return;
+  }
+
+  isSlidePaused = false;
+  slideFrame.classList.remove('is-paused');
+  document.querySelector('.slide-progress')?.classList.remove('is-paused');
+  resumeSlideTimer(slideRemainingMs);
+}
+
+function attachSlidePauseControls(slideFrame) {
+  if (!slideFrame) {
+    return;
+  }
+
+  slideFrame.addEventListener('pointerdown', pauseCurrentSlide);
+  slideFrame.addEventListener('pointerup', resumeCurrentSlide);
+  slideFrame.addEventListener('pointercancel', resumeCurrentSlide);
+  slideFrame.addEventListener('pointerleave', resumeCurrentSlide);
+  slideFrame.addEventListener('contextmenu', (event) => event.preventDefault());
 }
 
 function renderSlideContent({ slide, slideFrame, progress }) {
@@ -638,6 +700,7 @@ function renderSlideContent({ slide, slideFrame, progress }) {
       <img
         src="${slide.image}"
         alt="Фотоісторія: ${slide.title}"
+        draggable="false"
         style="--slide-focus: ${slide.focus || DEFAULT_SLIDE_FOCUS}"
       />
       <div class="slide-fallback" aria-hidden="true">
@@ -668,6 +731,9 @@ function renderSlideContent({ slide, slideFrame, progress }) {
   window.requestAnimationFrame(() => {
     slideFrame.classList.remove('is-changing');
   });
+  isSlidePaused = false;
+  slideFrame.classList.remove('is-paused');
+  progress.classList.remove('is-paused');
   scheduleNextSlide();
 }
 
@@ -742,6 +808,7 @@ function goToPhotoStory() {
   document.querySelector('.previous-slide').addEventListener('click', goToPreviousSlide);
   document.querySelector('.next-slide').addEventListener('click', goToNextSlide);
   document.querySelector('.skip-story').addEventListener('click', goToGiftZone);
+  attachSlidePauseControls(document.querySelector('.slide-frame'));
   showSlide(activeSlideIndex);
 }
 
